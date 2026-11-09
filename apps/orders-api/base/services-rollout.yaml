@@ -1,0 +1,26 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-api-stable
+  namespace: orders
+spec:
+  selector:
+    app: orders-api-rollout
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-api-canary
+  namespace: orders
+spec:
+  selector:
+    app: orders-api-rollout
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
