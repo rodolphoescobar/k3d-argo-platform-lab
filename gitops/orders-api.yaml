@@ -1,0 +1,33 @@
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: orders-api
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/rodolphoescobar/k3d-argo-platform-lab.git
+    targetRevision: main
+    path: apps/orders-api/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: orders
+
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
+
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
