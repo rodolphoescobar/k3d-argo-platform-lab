@@ -1,0 +1,74 @@
+
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: orders-api-validation
+  namespace: orders
+spec:
+  entrypoint: validation-pipeline
+  serviceAccountName: orders-workflow
+
+  arguments:
+    parameters:
+      - name: base-url
+        value: http://orders-api-stable.orders.svc.cluster.local
+
+  templates:
+    - name: validation-pipeline
+      dag:
+        tasks:
+          - name: health-check
+            template: http-check
+            arguments:
+              parameters:
+                - name: endpoint
+                  value: /health
+
+          - name: readiness-check
+            dependencies: [health-check]
+            template: http-check
+            arguments:
+              parameters:
+                - name: endpoint
+                  value: /ready
+
+          - name: integration-test
+            dependencies: [health-check]
+            template: orders-test
+
+    - name: http-check
+      inputs:
+        parameters:
+          - name: endpoint
+      container:
+        image: curlimages/curl:8.12.1
+        command: [sh, -ec]
+        args:
+          - |
+            curl --fail --silent --show-error \
+              --retry 3 \
+              --retry-delay 2 \
+              "{{workflow.parameters.base-url}}{{inputs.parameters.endpoint}}"
+
+    - name: orders-test
+      container:
+        image: python:3.12-alpine
+        command: [python, -c]
+        args:
+          - |
+            import json
+            import urllib.request
+
+            url = "{{workflow.parameters.base-url}}/api/orders"
+
+            with urllib.request.urlopen(url, timeout=10) as response:
+                assert response.status == 200
+                data = json.load(response)
+
+            assert data["service"] == "orders-api"
+            assert isinstance(data["orders"], list)
+            assert len(data["orders"]) > 0
+
+            print("Integration test passed")
+            print("Version:", data["version"])
+            print("Orders:", len(data["orders"]))
