@@ -1,0 +1,65 @@
+
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: orders-api-prometheus
+  namespace: orders
+spec:
+  args:
+    - name: canary-version
+
+  metrics:
+    - name: minimum-traffic
+      count: 1
+      failureLimit: 0
+      successCondition: len(result) > 0 && result[0] >= 0.1
+      provider:
+        prometheus:
+          address: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(
+              max by (pod, version, status) (
+                rate(
+                  orders_http_requests_total{
+                    version="{{args.canary-version}}",
+                    path="/api/orders"
+                  }[1m]
+                )
+              )
+            ) or vector(0)
+
+    - name: http-error-rate
+      count: 1
+      failureLimit: 0
+      successCondition: len(result) > 0 && result[0] <= 0.05
+      provider:
+        prometheus:
+          address: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            (
+              sum(
+                max by (pod, version, status) (
+                  rate(
+                    orders_http_requests_total{
+                      version="{{args.canary-version}}",
+                      path="/api/orders",
+                      status=~"5.."
+                    }[1m]
+                  )
+                )
+              ) or vector(0)
+            )
+            /
+            clamp_min(
+              sum(
+                max by (pod, version, status) (
+                  rate(
+                    orders_http_requests_total{
+                      version="{{args.canary-version}}",
+                      path="/api/orders"
+                    }[1m]
+                  )
+                )
+              ),
+              0.001
+            )

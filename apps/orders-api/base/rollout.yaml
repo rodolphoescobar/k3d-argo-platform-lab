@@ -61,27 +61,27 @@ spec:
               - name: orders-api
             namespace: orders
 
+      
       steps:
-      # Envia 10% do tráfego para a nova revisão
-      - setWeight: 10
+        # Direciona 10% do tráfego ao Canary
+        - setWeight: 10
 
-      # Executa testes e bloqueia em caso de falha
-      - analysis:
-          templates:
-            - templateName: orders-api-smoke-test
+        # Permite acumular métricas por 90 segundos
+        - pause:
+            duration: 90s
 
-      # Avança para 25% após aprovação
-      - setWeight: 25
-      - pause:
-          duration: 30s
+        # Consulta o Prometheus
+        - analysis:
+            templates:
+              - templateName: orders-api-prometheus
+            args:
+              - name: canary-version
+                value: "v-bad"
 
-      # Amplia para 50% do tráfego
-      - setWeight: 50
+        # Executado somente após aprovação
+        - setWeight: 50
 
-      # Executa uma segunda validação
-      - analysis:
-          templates:
-            - templateName: orders-api-smoke-test
+        - pause:
+            duration: 30s
 
-      # Promove para 100%
-      - setWeight: 100
+        - setWeight: 100
