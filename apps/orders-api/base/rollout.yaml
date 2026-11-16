@@ -28,7 +28,7 @@ spec:
             - /app/app.py
           env:
             - name: APP_VERSION
-              value: "v-bad"
+              value: "v5"
           ports:
             - name: http
               containerPort: 8080
