@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        lab.openai.com/config-revision: "metrics-v1"
+        lab.openai.com/config-revision: "metrics-fault-v1"
       labels:
         app: orders-api-rollout
     spec:

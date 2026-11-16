@@ -68,15 +68,23 @@ data:
                 data = {"status": "ok", "version": VERSION}
 
             elif path == "/api/orders":
-                data = {
-                    "service": "orders-api",
-                    "version": VERSION,
-                    "orders": [
-                        {"id": 1, "status": "created"},
-                        {"id": 2, "status": "processing"}
-                    ]
-                }
-                status = 200
+                if VERSION == "v-bad":
+                    status = 500
+                    data = {
+                        "service": "orders-api",
+                        "version": VERSION,
+                        "error": "simulated database failure"
+                    }
+                else:
+                    status = 200
+                    data = {
+                        "service": "orders-api",
+                        "version": VERSION,
+                        "orders": [
+                            {"id": 1, "status": "created"},
+                            {"id": 2, "status": "processing"}
+                        ]
+                    }
 
             else:
                 status = 404
