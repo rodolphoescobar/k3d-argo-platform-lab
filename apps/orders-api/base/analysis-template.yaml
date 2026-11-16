@@ -1,0 +1,56 @@
+
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: orders-api-smoke-test
+  namespace: orders
+spec:
+  metrics:
+    - name: canary-smoke-test
+      failureLimit: 0
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            activeDeadlineSeconds: 90
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: smoke-test
+                    image: python:3.12-alpine
+                    command:
+                      - python
+                      - -c
+                    args:
+                      - |
+                        import json
+                        import urllib.request
+
+                        base = "http://orders-api-canary.orders.svc.cluster.local"
+
+                        for path in ["/health", "/ready"]:
+                            with urllib.request.urlopen(
+                                base + path, timeout=10
+                            ) as response:
+                                assert response.status == 200
+                                print(path, "OK")
+
+                        with urllib.request.urlopen(
+                            base + "/api/orders", timeout=10
+                        ) as response:
+                            assert response.status == 200
+                            data = json.load(response)
+
+                        assert data["service"] == "orders-api"
+                        assert len(data["orders"]) > 0
+
+                        version = data["version"]
+                        print("Canary version:", version)
+
+                        # Política simulada para testar
+                        # o bloqueio de um release.
+                        assert version != "v-bad", \
+                            "Release rejeitado pela política"
+
+                        print("Smoke tests passed")

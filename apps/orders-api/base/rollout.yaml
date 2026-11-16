@@ -60,14 +60,26 @@ spec:
             namespace: orders
 
       steps:
-        - setWeight: 10
-        - pause: {}
+      # Envia 10% do tráfego para a nova revisão
+      - setWeight: 10
 
-        - setWeight: 25
-        - pause:
-            duration: 60s
+      # Executa testes e bloqueia em caso de falha
+      - analysis:
+          templates:
+            - templateName: orders-api-smoke-test
 
-        - setWeight: 50
-        - pause: {}
+      # Avança para 25% após aprovação
+      - setWeight: 25
+      - pause:
+          duration: 30s
 
-        - setWeight: 100
+      # Amplia para 50% do tráfego
+      - setWeight: 50
+
+      # Executa uma segunda validação
+      - analysis:
+          templates:
+            - templateName: orders-api-smoke-test
+
+      # Promove para 100%
+      - setWeight: 100
